@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>현대차 본주 vs 2우B 괴리율 모니터</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a1f2e;
+    --panel-2: #232a3d;
+    --border: #2d3548;
+    --text: #e4e7ee;
+    --muted: #8b93a7;
+    --up: #ff5263;
+    --down: #3a8cff;
+    --flat: #a0a6b4;
+    --accent: #ffc83d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.3px; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  .controls input, .controls button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .controls button {
+    cursor: pointer;
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    border: none;
+  }
+  .controls button:hover { opacity: 0.85; }
+  .controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .meta { color: var(--muted); font-size: 12px; }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+  }
+  .card h2 {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 6px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+  .card .ticker {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .price {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .change {
+    font-size: 14px;
+    margin-bottom: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .flat { color: var(--flat); }
+
+  dl.stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    margin: 0;
+    font-size: 12px;
+  }
+  dl.stats div { display: flex; justify-content: space-between; }
+  dl.stats dt { color: var(--muted); margin: 0; }
+  dl.stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  .disparity {
+    background: linear-gradient(135deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .disparity .label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .disparity .value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .disparity .formula {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  .notice {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 10px;
+    background: var(--panel-2);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+  }
+  .chart-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .chart-card h2 {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+  .chart-stats {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .range-buttons { display: flex; gap: 4px; }
+  .range-buttons button {
+    background: var(--panel-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .range-buttons button:hover { color: var(--text); }
+  .range-buttons button.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .chart-wrap {
+    position: relative;
+    height: 320px;
+    width: 100%;
+  }
+  .chart-wrap canvas { display: block; }
+
+  .comments-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .comments-card h2 {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+  .comments-meta { font-size: 12px; color: var(--muted); }
+  .date-switcher { display: flex; gap: 6px; }
+  .date-switcher input {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    width: 110px;
+    font-family: inherit;
+  }
+  .date-switcher button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .date-switcher button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .comment-form input,
+  .comment-form textarea {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .comment-form textarea { min-height: 60px; }
+  .comment-form input:focus,
+  .comment-form textarea:focus { outline: none; border-color: var(--accent); }
+  .form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .counter { font-size: 11px; color: var(--muted); }
+  #submitBtn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .comment-list { display: flex; flex-direction: column; gap: 10px; }
+  .comment-item {
+    padding: 12px;
+    background: var(--panel-2);
+    border-radius: 6px;
+    border-left: 3px solid var(--border);
+  }
+  .comment-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .comment-author { color: var(--accent); font-weight: 600; }
+  .comment-time { color: var(--muted); font-size: 11px; }
+  .comment-body {
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .comment-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 24px 0;
+  }
+  .loading { opacity: 0.4; }
+  .error {
+    color: var(--up);
+    font-size: 13px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--up);
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>현대차 본주 · 2우B 괴리율 모니터</h1>
+      <div class="meta" id="meta">데이터 로딩 중...</div>
+    </div>
+    <div class="controls">
+      <input type="text" id="dateInput" placeholder="YYYYMMDD (선택)" maxlength="8" />
+      <button id="refreshBtn">새로고침</button>
+    </div>
+  </header>
+
+  <div id="error" class="error" style="display:none"></div>
+
+  <div class="grid">
+    <div class="card" id="common">
+      <h2>현대차 (본주)</h2>
+      <div class="ticker" id="common-ticker">—</div>
+      <div class="price" id="common-price">—</div>
+      <div class="change" id="common-change">—</div>
+      <dl class="stats" id="common-stats"></dl>
+    </div>
+
+    <div class="card" id="pref">
+      <h2>현대차2우B (우선주)</h2>
+      <div class="ticker" id="pref-ticker">—</div>
+      <div class="price" id="pref-price">—</div>
+      <div class="change" id="pref-change">—</div>
+      <dl class="stats" id="pref-stats"></dl>
+    </div>
+
+    <div class="card" id="samsung">
+      <h2>삼성전자 (비교 종목)</h2>
+      <div class="ticker" id="samsung-ticker">—</div>
+      <div class="price" id="samsung-price">—</div>
+      <div class="change" id="samsung-change">—</div>
+      <dl class="stats" id="samsung-stats"></dl>
+    </div>
+  </div>
+
+  <div class="disparity">
+    <div>
+      <div class="label">괴리율 (본주 대비 2우B 할인폭)</div>
+      <div class="value" id="disparity">—</div>
+    </div>
+    <div class="formula">
+      괴리율 = (본주 종가 − 2우B 종가) / 본주 종가 × 100<br/>
+      값이 클수록 2우B가 본주 대비 크게 할인되어 거래 중
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <h2>괴리율 추이</h2>
+        <div class="chart-stats" id="chart-stats">—</div>
+      </div>
+      <div class="range-buttons">
+        <button data-days="30">30일</button>
+        <button data-days="90" class="active">90일</button>
+        <button data-days="365">1년</button>
+        <button data-days="9999">전체</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="disparityChart"></canvas>
+    </div>
+  </div>
+
+  <div class="comments-card">
+    <div class="comments-header">
+      <div>
+        <h2>댓글</h2>
+        <div class="comments-meta" id="comments-meta">
+          기준일: <span id="comments-date">—</span> · <span id="comments-count">0</span>개
+        </div>
+      </div>
+      <div class="date-switcher">
+        <input type="text" id="commentDateInput" placeholder="YYYYMMDD" maxlength="8" />
+        <button id="commentDateBtn">조회</button>
+      </div>
+    </div>
+
+    <form id="commentForm" class="comment-form">
+      <input type="text" id="authorInput" placeholder="작성자 (1~20자)" maxlength="20" required />
+      <textarea id="bodyInput" placeholder="이 날의 시장에 대한 메모를 남겨보세요 (1~500자)" maxlength="500" rows="2" required></textarea>
+      <div class="form-row">
+        <span class="counter"><span id="bodyCount">0</span>/500</span>
+        <button type="submit" id="submitBtn">등록</button>
+      </div>
+    </form>
+
+    <div id="commentList" class="comment-list"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+  const fmt = {
+    num: (v) => v == null ? '—' : Number(v).toLocaleString('ko-KR'),
+    pct: (v) => v == null ? '—' : (Number(v) >= 0 ? '+' : '') + Number(v).toFixed(2) + '%',
+    signed: (v) => v == null ? '—' : (Number(v) > 0 ? '+' : '') + Number(v).toLocaleString('ko-KR'),
+    date: (s) => s ? `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}` : '—',
+  };
+
+  function classForChange(v) {
+    if (v == null || v === '' || Number(v) === 0) return 'flat';
+    return Number(v) > 0 ? 'up' : 'down';
+  }
+
+  function renderStock(prefix, data) {
+    const priceEl = document.getElementById(`${prefix}-price`);
+    const changeEl = document.getElementById(`${prefix}-change`);
+    const tickerEl = document.getElementById(`${prefix}-ticker`);
+    const statsEl = document.getElementById(`${prefix}-stats`);
+
+    if (!data) {
+      priceEl.textContent = '조회 실패';
+      changeEl.textContent = '—';
+      statsEl.innerHTML = '';
+      return;
+    }
+
+    tickerEl.textContent = `${data.srtnCd} · ${data.itmsNm} · ${data.mrktCtg}`;
+    priceEl.textContent = fmt.num(data.clpr) + ' 원';
+
+    const vs = Number(data.vs);
+    const rt = Number(data.fltRt);
+    const cls = classForChange(vs);
+    priceEl.className = 'price ' + cls;
+    changeEl.className = 'change ' + cls;
+    changeEl.textContent = `${fmt.signed(vs)} 원 (${fmt.pct(rt)})`;
+
+    statsEl.innerHTML = `
+      <div><dt>시가</dt><dd>${fmt.num(data.mkp)}</dd></div>
+      <div><dt>고가</dt><dd>${fmt.num(data.hipr)}</dd></div>
+      <div><dt>저가</dt><dd>${fmt.num(data.lopr)}</dd></div>
+      <div><dt>거래량</dt><dd>${fmt.num(data.trqu)}</dd></div>
+      <div><dt>거래대금</dt><dd>${fmt.num(Math.round(Number(data.trPrc)/1e8))} 억</dd></div>
+      <div><dt>시가총액</dt><dd>${fmt.num(Math.round(Number(data.mrktTotAmt)/1e8))} 억</dd></div>
+    `;
+  }
+
+  async function load() {
+    const btn = document.getElementById('refreshBtn');
+    const errEl = document.getElementById('error');
+    const input = document.getElementById('dateInput').value.trim();
+    btn.disabled = true;
+    btn.textContent = '조회 중...';
+    errEl.style.display = 'none';
+    document.body.classList.add('loading');
+
+    try {
+      const url = '/api/overview' + (input ? `?basDt=${encodeURIComponent(input)}` : '');
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
+      const d = await res.json();
+
+      document.getElementById('meta').textContent =
+        `기준일자: ${fmt.date(d.basDt)}  ·  금융위원회 주식시세정보 OpenAPI`;
+
+      renderStock('common', d.common);
+      renderStock('pref', d.pref2B);
+      renderStock('samsung', d.samsung);
+
+      if (d.basDt) {
+        document.getElementById('commentDateInput').value = d.basDt;
+        loadComments(d.basDt);
+      }
+
+      const dispEl = document.getElementById('disparity');
+      if (d.disparity != null) {
+        dispEl.textContent = d.disparity.toFixed(2) + '%';
+      } else {
+        dispEl.textContent = '—';
+      }
+    } catch (e) {
+      errEl.textContent = '데이터 로드 실패: ' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '새로고침';
+      document.body.classList.remove('loading');
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', load);
+  document.getElementById('dateInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') load();
+  });
+
+  let chart;
+  async function loadChart(days) {
+    const res = await fetch(`/api/disparity-history?days=${days}`);
+    const { points } = await res.json();
+    if (!points || points.length === 0) return;
+
+    const labels = points.map((p) => `${p.basDt.slice(2,4)}/${p.basDt.slice(4,6)}/${p.basDt.slice(6,8)}`);
+    const data = points.map((p) => Number(p.disparity.toFixed(2)));
+
+    const vals = data.filter((v) => !Number.isNaN(v));
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const latest = vals[vals.length - 1];
+    document.getElementById('chart-stats').innerHTML =
+      `현재 <b>${latest.toFixed(2)}%</b> · 평균 ${avg.toFixed(2)}% · 최저 ${min.toFixed(2)}% · 최고 ${max.toFixed(2)}% · ${points.length}일`;
+
+    const ctx = document.getElementById('disparityChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: '괴리율 (%)',
+          data,
+          borderColor: '#ffc83d',
+          backgroundColor: 'rgba(255,200,61,0.1)',
+          fill: true,
+          tension: 0.2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 2,
+        }, {
+          label: '평균',
+          data: Array(data.length).fill(avg),
+          borderColor: 'rgba(160,166,180,0.5)',
+          borderDash: [4, 4],
+          borderWidth: 1,
+          pointRadius: 0,
+          fill: false,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#8b93a7' } },
+          tooltip: {
+            backgroundColor: '#232a3d',
+            borderColor: '#2d3548',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#8b93a7', maxTicksLimit: 12, autoSkip: true },
+            grid: { color: 'rgba(45,53,72,0.5)' },
+          },
+          y: {
+            ticks: { color: '#8b93a7', callback: (v) => v + '%' },
+            grid: { color: 'rgba(45,53,72,0.5)' },
+          },
+        },
+      },
+    });
+  }
+
+  document.querySelectorAll('.range-buttons button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.range-buttons button').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadChart(btn.dataset.days);
+    });
+  });
+
+  // ===== Comments =====
+  let activeCommentDate = null;
+
+  function timeAgo(iso) {
+    const then = new Date(iso.replace(' ', 'T') + 'Z');
+    const diff = (Date.now() - then.getTime()) / 1000;
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}일 전`;
+    return then.toLocaleDateString('ko-KR');
+  }
+
+  function renderComments(rows) {
+    const list = document.getElementById('commentList');
+    list.innerHTML = '';
+    document.getElementById('comments-count').textContent = rows.length;
+
+    if (rows.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'comment-empty';
+      empty.textContent = '아직 댓글이 없습니다. 첫 댓글을 남겨보세요.';
+      list.appendChild(empty);
+      return;
+    }
+
+    for (const row of rows) {
+      const item = document.createElement('div');
+      item.className = 'comment-item';
+
+      const head = document.createElement('div');
+      head.className = 'comment-head';
+      const author = document.createElement('span');
+      author.className = 'comment-author';
+      author.textContent = row.author;
+      const time = document.createElement('span');
+      time.className = 'comment-time';
+      time.textContent = timeAgo(row.created_at);
+      time.title = row.created_at;
+      head.appendChild(author);
+      head.appendChild(time);
+
+      const body = document.createElement('div');
+      body.className = 'comment-body';
+      body.textContent = row.body;
+
+      item.appendChild(head);
+      item.appendChild(body);
+      list.appendChild(item);
+    }
+  }
+
+  async function loadComments(basDt) {
+    activeCommentDate = basDt;
+    document.getElementById('comments-date').textContent = fmt.date(basDt);
+    const res = await fetch(`/api/comments?basDt=${encodeURIComponent(basDt)}`);
+    const data = await res.json();
+    renderComments(data.rows || []);
+  }
+
+  document.getElementById('commentDateBtn').addEventListener('click', () => {
+    const val = document.getElementById('commentDateInput').value.trim();
+    if (/^\d{8}$/.test(val)) loadComments(val);
+  });
+  document.getElementById('commentDateInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('commentDateBtn').click();
+  });
+
+  document.getElementById('bodyInput').addEventListener('input', (e) => {
+    document.getElementById('bodyCount').textContent = e.target.value.length;
+  });
+
+  document.getElementById('commentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!activeCommentDate) return;
+    const author = document.getElementById('authorInput').value.trim();
+    const body = document.getElementById('bodyInput').value.trim();
+    if (!author || !body) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ basDt: activeCommentDate, author, body }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        alert('등록 실패: ' + (err.error || res.statusText));
+        return;
+      }
+      document.getElementById('bodyInput').value = '';
+      document.getElementById('bodyCount').textContent = '0';
+      localStorage.setItem('lastAuthor', author);
+      await loadComments(activeCommentDate);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // restore last author
+  const savedAuthor = localStorage.getItem('lastAuthor');
+  if (savedAuthor) document.getElementById('authorInput').value = savedAuthor;
+
+  load();
+  loadChart(90);
+</script>
+</body>
+</html>
